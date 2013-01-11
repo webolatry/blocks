@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Blocks</string>
+    <string name="main_title">Blocks</string>
+    <string name="undo_label">Undo</string>
+    <string name="exit_label">Quit</string>
+    <color name="background">#ff555555</color>
+     <color name="text_color">#ffe0a000</color>
+      <color name="button_background">#ff000000</color>
+     <string name="very_easy">Very Easy</string>
+     <string name="personal_best">Personal Best:</string>
+     <string name="current_moves">Current Moves:</string>
+ <color name="yellow1">#F9E60E</color>
+   <color name="yellow2">#F9F89D</color>
+   <color name="orange4">#F7BE45</color>
+   <color name="orange5">#F7D896</color>
+   <color name="blue2">#19FCDA</color>
+   <color name="blue25">#D9F7F2</color>
+   <color name="grey05">#ACA899</color>
+   <color name="white1">#FFFFFF</color>
+   <color name="white2">#DDDDDD</color>
+   <string name="initial_moves">000</string>
+   <color name="text_halo_color">#ff111100</color>
+   <string name="personal_best_small">Best:</string>
+   <string name="current_moves_small">Moves:</string>	
+</resources>

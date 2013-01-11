@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:ads="http://schemas.android.com/apk/lib/com.google.ads"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical" >
+
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dip"
+        android:layout_marginTop="20dip"
+        android:gravity="center"
+        android:text="@string/very_easy"
+        android:textColor="@color/text_color"
+        android:textSize="35sp"
+        android:textStyle="bold"
+        
+         />
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dip"
+        android:gravity="center"
+        android:orientation="horizontal" >
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingRight="10dip"
+            android:text="@string/personal_best"
+            android:textColor="@color/text_color"
+            android:textSize="25sp" />
+
+        <TextView
+            android:id="@+id/best"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/back"
+            android:paddingLeft="6dip"
+            android:paddingRight="6dip"
+            android:text="@string/initial_moves"
+            android:textColor="@color/text_color"
+            android:textSize="25sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingLeft="25dip"
+            android:paddingRight="10dip"
+            android:text="@string/current_moves"
+            android:textColor="@color/text_color"
+            android:textSize="25sp" />
+
+        <TextView
+            android:id="@+id/current"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/back"
+            android:paddingLeft="6dip"
+            android:paddingRight="6dip"
+            android:text="@string/initial_moves"
+            android:textColor="@color/text_color"
+            android:textSize="25sp" />
+    </LinearLayout>
+
+    <com.jdt.blocks.SquareLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:orientation="vertical"
+        android:padding="6dip" >
+
+        <com.jdt.blocks.BoardLayout
+            android:id="@+id/boardLayout"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent" >
+
+            <com.jdt.blocks.BlocksView
+                android:id="@+id/board"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent" />
+            
+            <com.jdt.blocks.AlphaTextView
+	            android:id="@+id/boardMessage"
+	            android:layout_width="fill_parent"
+	            android:layout_height="fill_parent"
+	            android:gravity="center"
+	            android:text="Solved!!!"
+	            android:textColor="@color/text_color"
+	            android:textStyle="bold"
+	            android:textSize="55sp"         
+	            android:shadowColor="@color/text_halo_color"
+	       	     android:shadowDx="5"
+	       		 android:shadowDy="5"
+	       		 android:shadowRadius="5"
+	       		 android:visibility="invisible"/>
+            
+        </com.jdt.blocks.BoardLayout>
+        </com.jdt.blocks.SquareLayout>
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingTop="20dip" >
+
+        <Button
+            android:id="@+id/undo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="20dip"
+            android:background="@drawable/button"
+            android:text="undo"
+            android:textColor="@drawable/button_text"
+            android:textSize="25sp" />
+
+        <Button
+            android:id="@+id/restart"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="20dip"
+            android:background="@drawable/button"
+            android:text="restart"
+            android:textColor="@drawable/button_text"
+            android:textSize="25sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:gravity="bottom"
+        android:orientation="vertical"
+        android:paddingBottom="6dip" >
+
+        <com.google.ads.AdView
+            android:id="@+id/adView"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            ads:adSize="BANNER"
+            ads:adUnitId="MY_AD_UNIT_ID"
+            ads:loadAdOnCreate="true"
+            ads:testDevices="TEST_EMULATOR, TEST_DEVICE_ID"
+            android:gravity="bottom|center_horizontal" />
+    </LinearLayout>
+
+</LinearLayout>
