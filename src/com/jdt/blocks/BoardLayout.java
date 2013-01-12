@@ -39,342 +39,349 @@ import com.nineoldandroids.animation.ObjectAnimator;
  */
 public class BoardLayout extends FrameLayout implements GameObserver {
 
-    /* current board width and height */
-    private int mViewWidth = 0;
-    private int mViewHeight = 0;
+	/* the global game instance */
+	Game mGame;
 
-    /* scale and offset for when the board is zoomed & panned */
-    private float mBoardOffsetX = 0.0f;
-    private float mBoardOffsetY = 0.0f;
-    private float mBoardScaleFactor = 1.0f;
+	/* current board width and height */
+	private int mViewWidth = 0;
+	private int mViewHeight = 0;
 
-    /* helper for detecting scale gestures (pinch zoom) */
-    private ScaleGestureDetector mScaleDetector;
-    /* helper for detecting tap and scroll gestures */
-    private GestureDetector mGestureDetector;
+	/* scale and offset for when the board is zoomed & panned */
+	private float mBoardOffsetX = 0.0f;
+	private float mBoardOffsetY = 0.0f;
+	private float mBoardScaleFactor = 1.0f;
 
-    /* for animating a moving piece */
-    private ObjectAnimator mPieceAnimator;
-    private Piece mMovingPiece;
+	/* helper for detecting scale gestures (pinch zoom) */
+	private ScaleGestureDetector mScaleDetector;
+	/* helper for detecting tap and scroll gestures */
+	private GestureDetector mGestureDetector;
 
-    /*
-     * true when animating an undo-move so that after the animation the move
-     * isn't pushed to the move undo-stack
-     */
-    private boolean mUndoingMove = false;
+	/* for animating a moving piece */
+	private ObjectAnimator mPieceAnimator;
+	private Piece mMovingPiece;
 
-    /* for animating a glowing piece, after a piece has been moved */
-    private AnimatorSet mGlowingAnimator;
-    private Piece mGlowingPiece;
+	/*
+	 * true when animating an undo-move so that after the animation the move
+	 * isn't pushed to the move undo-stack
+	 */
+	private boolean mUndoingMove = false;
 
-    /* receives animation events from this object */
-    private BoardDrawable mDrawable;
+	/* for animating a glowing piece, after a piece has been moved */
+	private AnimatorSet mGlowingAnimator;
+	private Piece mGlowingPiece;
 
-    public BoardLayout(Context context, AttributeSet attrs) {
+	/* receives animation events from this object */
+	private BoardDrawable mDrawable;
 
-        super(context, attrs);
+	public BoardLayout(Context context, AttributeSet attrs) {
 
-        final Game game = Game.getInstance();
+		super(context, attrs);
 
-        /* configure the gesture helpers */
-        mScaleDetector = new ScaleGestureDetector(context, new ScaleListener());
-        mGestureDetector = new GestureDetector(context, new GestureListener());
+		BlocksApplication app = (BlocksApplication) context
+				.getApplicationContext();
+		mGame = app.getGame();
 
-        mDrawable = new BoardDrawable();
-        mDrawable.setCallback(this);
-        setForeground(mDrawable);
+		/* configure the gesture helpers */
+		mScaleDetector = new ScaleGestureDetector(context, new ScaleListener());
+		mGestureDetector = new GestureDetector(context, new GestureListener());
 
-        /*
-         * Configure the animation of a piece moving. The drawable function
-         * setMovingPiecePercent will be called with values between 0 and 1
-         */
-        mPieceAnimator = ObjectAnimator.ofFloat(mDrawable, "MovingPiecePercent", 0.0f, 1.0f);
-        mPieceAnimator.addListener(new AnimatorListenerAdapter() {
+		mDrawable = new BoardDrawable();
+		mDrawable.setCallback(this);
+		setForeground(mDrawable);
 
-            /** Notifies the start of the animation. */
-            public void onAnimationStart(Animator animation) {
+		/*
+		 * Configure the animation of a piece moving. The drawable function
+		 * setMovingPiecePercent will be called with values between 0 and 1
+		 */
+		mPieceAnimator = ObjectAnimator.ofFloat(mDrawable,
+				"MovingPiecePercent", 0.0f, 1.0f);
+		mPieceAnimator.addListener(new AnimatorListenerAdapter() {
 
-                /*
-                 * remove the piece from the board, it will be drawn by the
-                 * animation
-                 */
-                game.removePiece(mMovingPiece);
-            }
+			/** Notifies the start of the animation. */
+			public void onAnimationStart(Animator animation) {
 
-            /** Notifies the end of the animation. */
-            public void onAnimationEnd(Animator animation) {
+				/*
+				 * remove the piece from the board, it will be drawn by the
+				 * animation
+				 */
+				mGame.removePiece(mMovingPiece);
+			}
 
-                /* stop the drawable from drawing the piece */
-                mDrawable.clearMovingPiece();
+			/** Notifies the end of the animation. */
+			public void onAnimationEnd(Animator animation) {
 
-                /*
-                 * move the piece (according to game rules, it will only move in
-                 * one direction)
-                 */
-                mMovingPiece.move();
+				/* stop the drawable from drawing the piece */
+				mDrawable.clearMovingPiece();
 
-                /* add the piece in its moved location */
-                game.addPiece(mMovingPiece);
+				/*
+				 * move the piece (according to game rules, it will only move in
+				 * one direction)
+				 */
+				mMovingPiece.move();
 
-                /*
-                 * get the first cell of the piece that was moved, will be used
-                 * to find the destination piece, which may have merged with
-                 * other pieces
-                 */
-                Cell cell = mMovingPiece.getFirstCell();
+				/* add the piece in its moved location */
+				mGame.addPiece(mMovingPiece);
 
-                /*
-                 * put the moved piece on the undo stack, but not if the current
-                 * animation is the undo of a previous move
-                 */
-                boolean checkPiece = false;
-                if (!mUndoingMove) {
-                    game.addUndoMove(mMovingPiece);
-                    checkPiece = true;
-                }
+				/*
+				 * get the first cell of the piece that was moved, will be used
+				 * to find the destination piece, which may have merged with
+				 * other pieces
+				 */
+				Cell cell = mMovingPiece.getFirstCell();
 
-                /* clear state, not needed anymore */
-                mMovingPiece = null;
-                mUndoingMove = false;
+				/*
+				 * put the moved piece on the undo stack, but not if the current
+				 * animation is the undo of a previous move
+				 */
+				boolean checkPiece = false;
+				if (!mUndoingMove) {
+					mGame.addUndoMove(mMovingPiece);
+					checkPiece = true;
+				}
 
-                if (checkPiece) {
+				/* clear state, not needed anymore */
+				mMovingPiece = null;
+				mUndoingMove = false;
 
-                    /* find piece from cell */
-                    mGlowingPiece = game.getPiece(cell);
+				if (checkPiece) {
 
-                    /* animate the piece at the destination, glowing */
-                    mGlowingAnimator.start();
+					/* find piece from cell */
+					mGlowingPiece = mGame.getPiece(cell);
 
-                    /* is the piece the finish piece ? */
-                    if (game.isFinishPiece(mGlowingPiece)) {
-                        game.setFinished();
-                    }
-                }
-            }
-        });
-        mPieceAnimator.setDuration(250);
+					/* animate the piece at the destination, glowing */
+					mGlowingAnimator.start();
 
-        /*
-         * Configure the animation of a piece glowing The drawable function
-         * setGlowAlpha will be called with alpha values
-         */
-        ObjectAnimator GlowingAnimator1 = ObjectAnimator.ofInt(mDrawable, "GlowAlpha", 5, 75);
-        ObjectAnimator GlowingAnimator2 = ObjectAnimator.ofInt(mDrawable, "GlowAlpha", 75, 5);
-        mGlowingAnimator = new AnimatorSet();
-        mGlowingAnimator.addListener(new AnimatorListenerAdapter() {
+					/* is the piece the finish piece ? */
+					if (mGame.isFinishPiece(mGlowingPiece)) {
+						mGame.setFinished();
+					}
+				}
+			}
+		});
+		mPieceAnimator.setDuration(250);
 
-            /** Notifies the start of the animation. */
-            public void onAnimationStart(Animator animation) {
-                mDrawable.setGlowingPiece(mGlowingPiece);
-            }
+		/*
+		 * Configure the animation of a piece glowing The drawable function
+		 * setGlowAlpha will be called with alpha values
+		 */
+		ObjectAnimator GlowingAnimator1 = ObjectAnimator.ofInt(mDrawable,
+				"GlowAlpha", 5, 75);
+		ObjectAnimator GlowingAnimator2 = ObjectAnimator.ofInt(mDrawable,
+				"GlowAlpha", 75, 5);
+		mGlowingAnimator = new AnimatorSet();
+		mGlowingAnimator.addListener(new AnimatorListenerAdapter() {
 
-            /** Notifies the end of the animation. */
-            public void onAnimationEnd(Animator animation) {
-                mDrawable.clearGlowingPiece();
-                /* clear state, not needed anymore */
-                mGlowingPiece = null;
-            }
-        });
-        GlowingAnimator1.setDuration(350);
-        GlowingAnimator2.setDuration(350);
-        mGlowingAnimator.play(GlowingAnimator1).before(GlowingAnimator2);
-        mUndoingMove = false;
-    }
+			/** Notifies the start of the animation. */
+			public void onAnimationStart(Animator animation) {
+				mDrawable.setGlowingPiece(mGlowingPiece);
+			}
 
-    /** Connects various rendering elements together */
-    public void setView(BlocksView view) {
-        mDrawable.setView(view);
-        mDrawable.setLayout(this);
-        view.setLayout(this);
-    }
+			/** Notifies the end of the animation. */
+			public void onAnimationEnd(Animator animation) {
+				mDrawable.clearGlowingPiece();
+				/* clear state, not needed anymore */
+				mGlowingPiece = null;
+			}
+		});
+		GlowingAnimator1.setDuration(350);
+		GlowingAnimator2.setDuration(350);
+		mGlowingAnimator.play(GlowingAnimator1).before(GlowingAnimator2);
+		mUndoingMove = false;
+	}
 
-    /**
-     * get the current board x-offset (pinch & zoom)
-     * 
-     * @return
-     */
-    public float getBoardOffsetX() {
-        return mBoardOffsetX;
-    }
+	/** Connects various rendering elements together */
+	public void setView(BlocksView view) {
+		mDrawable.setView(view);
+		mDrawable.setLayout(this);
+		view.setLayout(this);
+	}
 
-    /**
-     * get the current board y-offset (pinch & zoom)
-     * 
-     * @return
-     */
-    public float getBoardOffsetY() {
-        return mBoardOffsetY;
-    }
+	/**
+	 * get the current board x-offset (pinch & zoom)
+	 * 
+	 * @return
+	 */
+	public float getBoardOffsetX() {
+		return mBoardOffsetX;
+	}
 
-    /**
-     * get the current board scale (pinch & zoom)
-     * 
-     * @return
-     */
-    public float getBoardScaleFactor() {
-        return mBoardScaleFactor;
-    }
+	/**
+	 * get the current board y-offset (pinch & zoom)
+	 * 
+	 * @return
+	 */
+	public float getBoardOffsetY() {
+		return mBoardOffsetY;
+	}
 
-    /** Returns a board cell from the provided x y */
-    private Cell getCellFromXY(float X, float Y) {
+	/**
+	 * get the current board scale (pinch & zoom)
+	 * 
+	 * @return
+	 */
+	public float getBoardScaleFactor() {
+		return mBoardScaleFactor;
+	}
 
-        final Game game = Game.getInstance();
-        float cellWidth = mViewWidth / game.getColumns();
-        float cellHeight = mViewHeight / game.getRows();
-        return new Cell((int) Math.floor(Y / cellWidth), (int) Math.floor(X / cellHeight));
-    }
+	/** Returns a board cell from the provided x y */
+	private Cell getCellFromXY(float X, float Y) {
 
-    /**
-     * This is called during layout when the size of this view has changed.
-     */
-    @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+		float cellWidth = mViewWidth / mGame.getColumns();
+		float cellHeight = mViewHeight / mGame.getRows();
+		return new Cell((int) Math.floor(Y / cellWidth), (int) Math.floor(X
+				/ cellHeight));
+	}
 
-        super.onSizeChanged(w, h, oldw, oldh);
-        mViewWidth = w;
-        mViewHeight = h;
-    }
+	/**
+	 * This is called during layout when the size of this view has changed.
+	 */
+	@Override
+	protected void onSizeChanged(int w, int h, int oldw, int oldh) {
 
-    /**
-     * Implement this method to handle touch screen motion events.
-     */
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
+		super.onSizeChanged(w, h, oldw, oldh);
+		mViewWidth = w;
+		mViewHeight = h;
+	}
 
-        if (mGestureDetector.onTouchEvent(event))
-            return true;
-        if (mScaleDetector.onTouchEvent(event))
-            return true;
+	/**
+	 * Implement this method to handle touch screen motion events.
+	 */
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
 
-        return false;
-    }
+		if (mGestureDetector.onTouchEvent(event))
+			return true;
+		if (mScaleDetector.onTouchEvent(event))
+			return true;
 
-    /**
-     * Receives events from the ScaleGestureDetector For pinch-zoom
-     * 
-     * @author Tom
-     */
-    private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
+		return false;
+	}
 
-        /**
-         * Responds to scaling events for a gesture in progress. Reported by
-         * pointer motion. For pinch-zoom
-         */
-        @Override
-        public boolean onScale(ScaleGestureDetector detector) {
-            mBoardScaleFactor *= detector.getScaleFactor();
-            mBoardScaleFactor = Math.max(1.0f, Math.min(mBoardScaleFactor, 5.0f));
-            invalidate();
-            return true;
-        }
-    }
+	/**
+	 * Receives events from the ScaleGestureDetector For pinch-zoom
+	 * 
+	 * @author Tom
+	 */
+	private class ScaleListener extends
+			ScaleGestureDetector.SimpleOnScaleGestureListener {
 
-    /**
-     * Receives events from the GestureDetector For tapping on a piece to move
-     * it, and panning the board
-     * 
-     * @author Tom
-     */
-    class GestureListener extends SimpleOnGestureListener {
+		/**
+		 * Responds to scaling events for a gesture in progress. Reported by
+		 * pointer motion. For pinch-zoom
+		 */
+		@Override
+		public boolean onScale(ScaleGestureDetector detector) {
+			mBoardScaleFactor *= detector.getScaleFactor();
+			mBoardScaleFactor = Math.max(1.0f,
+					Math.min(mBoardScaleFactor, 5.0f));
+			invalidate();
+			return true;
+		}
+	}
 
-        /**
-         * Notified when a tap occurs with the up MotionEvent that triggered it.
-         */
-        @Override
-        public boolean onSingleTapUp(MotionEvent event) {
+	/**
+	 * Receives events from the GestureDetector For tapping on a piece to move
+	 * it, and panning the board
+	 * 
+	 * @author Tom
+	 */
+	class GestureListener extends SimpleOnGestureListener {
 
-            final Game game = Game.getInstance();
+		/**
+		 * Notified when a tap occurs with the up MotionEvent that triggered it.
+		 */
+		@Override
+		public boolean onSingleTapUp(MotionEvent event) {
 
-            if (game.isFinished())
-                return true;
+			if (mGame.isFinished())
+				return true;
 
-            /* convert x,y to board coordinates */
-            float pts[] = {
-                    event.getX(), event.getY()
-            };
-            Matrix m = new Matrix();
-            m.preScale(1.0f / mBoardScaleFactor, 1.0f / mBoardScaleFactor);
-            m.preTranslate(-mBoardOffsetX, -mBoardOffsetY);
-            m.mapPoints(pts);
+			/* convert x,y to board coordinates */
+			float pts[] = { event.getX(), event.getY() };
+			Matrix m = new Matrix();
+			m.preScale(1.0f / mBoardScaleFactor, 1.0f / mBoardScaleFactor);
+			m.preTranslate(-mBoardOffsetX, -mBoardOffsetY);
+			m.mapPoints(pts);
 
-            /* get the tapped cell */
-            Cell cell = getCellFromXY(pts[0], pts[1]);
+			/* get the tapped cell */
+			Cell cell = getCellFromXY(pts[0], pts[1]);
 
-            /* get the piece at the cell, if any */
-            Piece piece = game.getPiece(cell);
+			/* get the piece at the cell, if any */
+			Piece piece = mGame.getPiece(cell);
 
-            if (piece == null)
-                return true;
+			if (piece == null)
+				return true;
 
-            /* if the piece can't move, exit */
-            if (!piece.canMove())
-                return true;
+			/* if the piece can't move, exit */
+			if (!piece.canMove())
+				return true;
 
-            /* move the piece */
-            mUndoingMove = false;
-            mMovingPiece = piece;
-            mDrawable.setMovingPiece(mMovingPiece);
-            mPieceAnimator.start();
+			/* move the piece */
+			mUndoingMove = false;
+			mMovingPiece = piece;
+			mDrawable.setMovingPiece(mMovingPiece);
+			mPieceAnimator.start();
 
-            return true;
-        }
+			return true;
+		}
 
-        /**
-         * Notified when a scroll occurs with the initial on down MotionEvent
-         * and the current move MotionEvent. For panning the game board
-         */
-        @Override
-        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+		/**
+		 * Notified when a scroll occurs with the initial on down MotionEvent
+		 * and the current move MotionEvent. For panning the game board
+		 */
+		@Override
+		public boolean onScroll(MotionEvent e1, MotionEvent e2,
+				float distanceX, float distanceY) {
 
-            /* only scroll if board is zoomed in */
-            if (mBoardScaleFactor > 1.0f) {
-                mBoardOffsetX -= distanceX;
-                mBoardOffsetY -= distanceY;
+			/* only scroll if board is zoomed in */
+			if (mBoardScaleFactor > 1.0f) {
+				mBoardOffsetX -= distanceX;
+				mBoardOffsetY -= distanceY;
 
-                invalidate();
-            } else {
-                /* make sure offset is zero */
-                mBoardOffsetX = 0.0f;
-                mBoardOffsetY = 0.0f;
-                invalidate();
-            }
-            return true;
-        }
-    }
+				invalidate();
+			} else {
+				/* make sure offset is zero */
+				mBoardOffsetX = 0.0f;
+				mBoardOffsetY = 0.0f;
+				invalidate();
+			}
+			return true;
+		}
+	}
 
-    /*********************************************************************************************
-     * GameObserver
-     */
+	/*********************************************************************************************
+	 * GameObserver
+	 */
 
-    /** Called when a game piece has been moved */
-    public void onMovePiece() {
-    }
+	/** Called when a game piece has been moved */
+	public void onMovePiece() {
+	}
 
-    /** Called when a game piece has been un-moved */
-    public void onUndoMove(Piece piece) {
+	/** Called when a game piece has been un-moved */
+	public void onUndoMove(Piece piece) {
 
-        try {
-            mUndoingMove = true;
-            mMovingPiece = (Piece) piece.clone();
-            mMovingPiece.mMobility.reverse();
-            mDrawable.setMovingPiece(mMovingPiece);
-            mPieceAnimator.start();
-        } catch (Exception e) {
-            mUndoingMove = false;
-            mMovingPiece = null;
-            mDrawable.clearMovingPiece();
-        }
-    }
+		try {
+			mUndoingMove = true;
+			mMovingPiece = (Piece) piece.clone();
+			mMovingPiece.mMobility.reverse();
+			mDrawable.setMovingPiece(mMovingPiece);
+			mPieceAnimator.start();
+		} catch (Exception e) {
+			mUndoingMove = false;
+			mMovingPiece = null;
+			mDrawable.clearMovingPiece();
+		}
+	}
 
-    /** Called when a game has started */
-    public void onGameStart() {
+	/** Called when a game has started */
+	public void onGameStart() {
 
-        /* forward to drawable */
-        mDrawable.onGameStart();
-        invalidate();
-    }
+		/* forward to drawable */
+		mDrawable.onGameStart();
+		invalidate();
+	}
 
-    /** Called when a game has finished */
-    public void onGameFinish() {
-    }
+	/** Called when a game has finished */
+	public void onGameFinish() {
+	}
 }

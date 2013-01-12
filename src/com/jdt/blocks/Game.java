@@ -23,6 +23,8 @@ import java.util.LinkedList;
 import java.util.Set;
 import java.util.Stack;
 
+import android.content.res.Resources;
+
 /**
  * Maintains current game state, processes game moves
  * 
@@ -73,12 +75,12 @@ public class Game {
      */
 
     /* the current game instance */
-    private static Game sInstance = null;
+    //private static Game sInstance = null;
 
     /** Returns the current game instance */
-    public static Game getInstance() {
-        return sInstance;
-    }
+    //public static Game getInstance() {
+     //   return sInstance;
+   // }
 
     /**
      * Create a new game instance using a game parser
@@ -86,44 +88,46 @@ public class Game {
      * @param parser contains the game board definition
      * @return a new Game instance based on the board definition in the parser
      */
-    public static Game getInstance(GameParser parser) {
+    public static Game createFromResource(Resources res, int id) {
+    	
+    	GameParser parser = new GameParser(res, id);
 
         if (parser == null || !parser.valid())
-            throw new IllegalArgumentException("illegal game parser");
+            throw new IllegalArgumentException("illegal game resource");
 
-        sInstance = new Game();
+        Game game = new Game();
 
-        sInstance.mRows = 0;
-        sInstance.mColumns = 0;
-        sInstance.mState = null;
-        sInstance.mID = new String(parser.getID());
-        sInstance.mName = new String(parser.getName());
-        sInstance.mUndoStack = new Stack<Piece>();
-        sInstance.mFinished = false;
-        sInstance.mObservers = new LinkedList<GameObserver>();
-        sInstance.mColors = new HashMap();
+        game.mRows = 0;
+        game.mColumns = 0;
+        game.mState = null;
+        game.mID = new String(parser.getID());
+        game.mName = new String(parser.getName());
+        game.mUndoStack = new Stack<Piece>();
+        game.mFinished = false;
+        game.mObservers = new LinkedList<GameObserver>();
+        game.mColors = new HashMap();
 
         String finishMessage = parser.getFinishMessage();
         if (finishMessage != null)
-            sInstance.mFinishMessage = new String(finishMessage);
+        	game.mFinishMessage = new String(finishMessage);
 
         if (parser.valid()) {
-            sInstance.mRows = parser.getRows();
-            sInstance.mColumns = parser.getColumns();
-            sInstance.mState = parser.getState().clone();
-            sInstance.mColors = (HashMap) parser.getColors().clone();
+        	game.mRows = parser.getRows();
+        	game.mColumns = parser.getColumns();
+        	game.mState = parser.getState().clone();
+        	game.mColors = (HashMap) parser.getColors().clone();
 
             try {
-                sInstance.mFinishPiece = (Piece) parser.getFinishPiece().clone();
+                game.mFinishPiece = (Piece) parser.getFinishPiece().clone();
             } catch (CloneNotSupportedException e) {
                 throw new IllegalStateException();
             }
         }
 
-        return sInstance;
+        return game;
     }
 
-    /* Default constructor is private, games only created with a parser */
+    /* Default constructor is private, games only created with a resource */
     private Game() {
     }
 

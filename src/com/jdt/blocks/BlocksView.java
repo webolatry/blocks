@@ -22,7 +22,6 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.util.AttributeSet;
@@ -37,280 +36,295 @@ import java.util.Iterator;
  */
 public class BlocksView extends View {
 
-    /* size of the game board */
-    private int mViewWidth = 0;
-    private int mViewHeight = 0;
+	/* the global game object */
+	Game mGame;
 
-    /* layout that contains this view */
-    private BoardLayout mBoardLayout;
+	/* size of the game board */
+	private int mViewWidth = 0;
+	private int mViewHeight = 0;
 
-    public BlocksView(Context context, AttributeSet attrs) {
-        super(context, attrs);
-    }
+	/* layout that contains this view */
+	private BoardLayout mBoardLayout;
 
-    /** Called when the size of this view has changed. */
-    @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        super.onSizeChanged(w, h, oldw, oldh);
+	public BlocksView(Context context, AttributeSet attrs) {
+		super(context, attrs);
 
-        mViewWidth = w;
-        mViewHeight = h;
-    }
+		BlocksApplication app = (BlocksApplication) context.getApplicationContext();
+		mGame = app.getGame();
 
-    /** Called when the view should render its content. */
-    @Override
-    protected void onDraw(Canvas canvas) {
+	}
 
-        Game game = Game.getInstance();
-        if (game == null)
-            return;
-        if (mBoardLayout == null)
-            return;
+	/** Called when the size of this view has changed. */
+	@Override
+	protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+		super.onSizeChanged(w, h, oldw, oldh);
 
-        canvas.save(Canvas.MATRIX_SAVE_FLAG);
-        canvas.translate(mBoardLayout.getBoardOffsetX(), mBoardLayout.getBoardOffsetY());
-        canvas.scale(mBoardLayout.getBoardScaleFactor(), mBoardLayout.getBoardScaleFactor());
+		mViewWidth = w;
+		mViewHeight = h;
+	}
 
-        float cell_width = getCellWidth();
-        float cell_height = getCellHeight();
+	/** Called when the view should render its content. */
+	@Override
+	protected void onDraw(Canvas canvas) {
 
-        Paint paint = new Paint();
-        paint.setColor(R.color.background);
-        paint.setStyle(Paint.Style.FILL);
+		if (mBoardLayout == null)
+			return;
 
-        int rows = game.getRows();
-        int columns = game.getColumns();
+		canvas.save(Canvas.MATRIX_SAVE_FLAG);
+		canvas.translate(mBoardLayout.getBoardOffsetX(),
+				mBoardLayout.getBoardOffsetY());
+		canvas.scale(mBoardLayout.getBoardScaleFactor(),
+				mBoardLayout.getBoardScaleFactor());
 
-        Bitmap myBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.background);
-        Bitmap mBitmap = Bitmap.createScaledBitmap(myBitmap, mViewWidth, mViewHeight, true);
+		float cell_width = getCellWidth();
+		float cell_height = getCellHeight();
 
-        canvas.drawBitmap(mBitmap, 0, 0, null);
+		Paint paint = new Paint();
+		paint.setColor(R.color.background);
+		paint.setStyle(Paint.Style.FILL);
 
-        RectF cell_rect = new RectF();
-        Cell cell = new Cell();
+		int rows = mGame.getRows();
+		int columns = mGame.getColumns();
 
-        /* for each game board row... */
-        for (cell.mRow = 0; cell.mRow < rows; ++cell.mRow) {
+		Bitmap myBitmap = BitmapFactory.decodeResource(getResources(),
+				R.drawable.background);
+		Bitmap mBitmap = Bitmap.createScaledBitmap(myBitmap, mViewWidth,
+				mViewHeight, true);
 
-            /* for each game board column */
-            for (cell.mColumn = 0; cell.mColumn < columns; ++cell.mColumn) {
+		canvas.drawBitmap(mBitmap, 0, 0, null);
 
-                if (!game.isCellPiece(cell))
-                    continue;
+		RectF cell_rect = new RectF();
+		Cell cell = new Cell();
 
-                boolean draw_cell = true;
-                int color = game.getCellColor(cell);
-                int cellState = game.getCellState(cell);
+		/* for each game board row... */
+		for (cell.mRow = 0; cell.mRow < rows; ++cell.mRow) {
 
-                if (draw_cell) {
+			/* for each game board column */
+			for (cell.mColumn = 0; cell.mColumn < columns; ++cell.mColumn) {
 
-                    paint.setColor(color);
-                    paint.setAlpha(150);
+				if (!mGame.isCellPiece(cell))
+					continue;
 
-                    cell_rect.top = cell.mRow * cell_height + 1;
-                    cell_rect.bottom = cell_rect.top + cell_height - 2;
-                    cell_rect.left = cell.mColumn * cell_width + 1;
-                    cell_rect.right = cell_rect.left + cell_width - 2;
+				boolean draw_cell = true;
+				int color = mGame.getCellColor(cell);
+				int cellState = mGame.getCellState(cell);
 
-                    paint.setStyle(Paint.Style.FILL);
-                    canvas.drawRect(cell_rect, paint);
+				if (draw_cell) {
 
-                    paint.setStrokeWidth(2);
+					paint.setColor(color);
+					paint.setAlpha(150);
 
-                    /* grout, right */
-                    if (cell.mColumn < columns - 1) {
+					cell_rect.top = cell.mRow * cell_height + 1;
+					cell_rect.bottom = cell_rect.top + cell_height - 2;
+					cell_rect.left = cell.mColumn * cell_width + 1;
+					cell_rect.right = cell_rect.left + cell_width - 2;
 
-                        cell.mColumn++;
-                        if (game.getCellState(cell) == cellState)
-                            canvas.drawLine(cell_rect.right + 1, cell_rect.top,
-                                    cell_rect.right + 1, cell_rect.bottom, paint);
-                        cell.mColumn--;
-                    }
-                    /* grout, bottom */
-                    if (cell.mRow < rows - 1) {
+					paint.setStyle(Paint.Style.FILL);
+					canvas.drawRect(cell_rect, paint);
 
-                        cell.mRow++;
-                        if (game.getCellState(cell) == cellState)
-                            canvas.drawLine(cell_rect.left, cell_rect.bottom + 1, cell_rect.right,
-                                    cell_rect.bottom + 1, paint);
-                        cell.mRow--;
-                    }
-                }
-            }
-        }
+					paint.setStrokeWidth(2);
 
-        canvas.restore();
-    }
+					/* grout, right */
+					if (cell.mColumn < columns - 1) {
 
-    /**
-     * Sets the layout that contains this view, used to get current size
-     * 
-     * @param layout
-     */
-    public void setLayout(BoardLayout layout) {
-        mBoardLayout = layout;
-    }
+						cell.mColumn++;
+						if (mGame.getCellState(cell) == cellState)
+							canvas.drawLine(cell_rect.right + 1, cell_rect.top,
+									cell_rect.right + 1, cell_rect.bottom,
+									paint);
+						cell.mColumn--;
+					}
+					/* grout, bottom */
+					if (cell.mRow < rows - 1) {
 
-    /**
-     * Returns the width of a single cell
-     * 
-     * @return
-     */
-    private float getCellWidth() {
-        Game game = Game.getInstance();
-        return mViewWidth / (float) game.getColumns();
-    }
+						cell.mRow++;
+						if (mGame.getCellState(cell) == cellState)
+							canvas.drawLine(cell_rect.left,
+									cell_rect.bottom + 1, cell_rect.right,
+									cell_rect.bottom + 1, paint);
+						cell.mRow--;
+					}
+				}
+			}
+		}
 
-    /**
-     * Returns the height of a single cell
-     * 
-     * @return
-     */
-    private float getCellHeight() {
-        Game game = Game.getInstance();
-        return mViewHeight / (float) game.getRows();
-    }
+		canvas.restore();
+	}
 
-    /**
-     * Draws a moving piece, positions a specified percent between its current
-     * position and its destination position
-     * 
-     * @param canvas drawn here
-     * @param paint colors, alpha
-     * @param piece the piece to render
-     * @param percentMoved positions the piece for rendering, changed via
-     *            animation
-     */
-    public void renderMovingPiece(Canvas canvas, Paint paint, Piece piece, float percentMoved) {
+	/**
+	 * Sets the layout that contains this view, used to get current size
+	 * 
+	 * @param layout
+	 */
+	public void setLayout(BoardLayout layout) {
+		mBoardLayout = layout;
+	}
 
-        /*
-         * assume input canvas already adjusted for current board scale and
-         * offset
-         */
-        float cell_width = getCellWidth();
-        float cell_height = getCellHeight();
-        RectF cell_rect = new RectF();
+	/**
+	 * Returns the width of a single cell
+	 * 
+	 * @return
+	 */
+	private float getCellWidth() {
+		return mViewWidth / (float) mGame.getColumns();
+	}
 
-        /* get the color of the piece */
-        Game game = Game.getInstance();
-        int color = game.getValueColor(piece.mState);
+	/**
+	 * Returns the height of a single cell
+	 * 
+	 * @return
+	 */
+	private float getCellHeight() {
+		return mViewHeight / (float) mGame.getRows();
+	}
 
-        /* determine how far the piece has moved */
-        float moveRows = piece.mMobility.getMoveRows();
-        float moveCols = piece.mMobility.getMoveColumns();
-        float movedX = moveCols * percentMoved * cell_width;
-        float movedY = moveRows * percentMoved * cell_height;
+	/**
+	 * Draws a moving piece, positions a specified percent between its current
+	 * position and its destination position
+	 * 
+	 * @param canvas
+	 *            drawn here
+	 * @param paint
+	 *            colors, alpha
+	 * @param piece
+	 *            the piece to render
+	 * @param percentMoved
+	 *            positions the piece for rendering, changed via animation
+	 */
+	public void renderMovingPiece(Canvas canvas, Paint paint, Piece piece,
+			float percentMoved) {
 
-        canvas.save(Canvas.MATRIX_SAVE_FLAG);
+		/*
+		 * assume input canvas already adjusted for current board scale and
+		 * offset
+		 */
+		float cell_width = getCellWidth();
+		float cell_height = getCellHeight();
+		RectF cell_rect = new RectF();
 
-        /* add movement offset to canvas */
-        canvas.translate(movedX, movedY);
+		/* get the color of the piece */
+		int color = mGame.getValueColor(piece.mState);
 
-        paint.setColor(color);
-        paint.setAlpha(150);
-        paint.setStyle(Paint.Style.FILL);
+		/* determine how far the piece has moved */
+		float moveRows = piece.mMobility.getMoveRows();
+		float moveCols = piece.mMobility.getMoveColumns();
+		float movedX = moveCols * percentMoved * cell_width;
+		float movedY = moveRows * percentMoved * cell_height;
 
-        /* draw each cell */
-        for (Iterator<Cell> iter = piece.mCells.iterator(); iter.hasNext();) {
+		canvas.save(Canvas.MATRIX_SAVE_FLAG);
 
-            Cell cell = iter.next();
+		/* add movement offset to canvas */
+		canvas.translate(movedX, movedY);
 
-            cell_rect.top = cell.mRow * cell_height + 1;
-            cell_rect.bottom = cell_rect.top + cell_height - 2;
-            cell_rect.left = cell.mColumn * cell_width + 1;
-            cell_rect.right = cell_rect.left + cell_width - 2;
+		paint.setColor(color);
+		paint.setAlpha(150);
+		paint.setStyle(Paint.Style.FILL);
 
-            paint.setStyle(Paint.Style.FILL);
-            canvas.drawRect(cell_rect, paint);
+		/* draw each cell */
+		for (Iterator<Cell> iter = piece.mCells.iterator(); iter.hasNext();) {
 
-            /* grout, right */
-            Cell testCell = new Cell(cell, Direction.RIGHT);
-            if (piece.mCells.contains(testCell)) {
+			Cell cell = iter.next();
 
-                canvas.drawLine(cell_rect.right + 1, cell_rect.top, cell_rect.right + 1,
-                        cell_rect.bottom, paint);
-            }
+			cell_rect.top = cell.mRow * cell_height + 1;
+			cell_rect.bottom = cell_rect.top + cell_height - 2;
+			cell_rect.left = cell.mColumn * cell_width + 1;
+			cell_rect.right = cell_rect.left + cell_width - 2;
 
-            /* grout, bottom */
-            testCell = new Cell(cell, Direction.DOWN);
-            if (piece.mCells.contains(testCell)) {
+			paint.setStyle(Paint.Style.FILL);
+			canvas.drawRect(cell_rect, paint);
 
-                canvas.drawLine(cell_rect.left, cell_rect.bottom + 1, cell_rect.right,
-                        cell_rect.bottom + 1, paint);
-            }
-        }
+			/* grout, right */
+			Cell testCell = new Cell(cell, Direction.RIGHT);
+			if (piece.mCells.contains(testCell)) {
 
-        canvas.restore();
-    }
+				canvas.drawLine(cell_rect.right + 1, cell_rect.top,
+						cell_rect.right + 1, cell_rect.bottom, paint);
+			}
 
-    /**
-     * Draws a glowing piece, applying the specified alpha
-     * 
-     * @param canvas drawn here
-     * @param paint colors, alpha
-     * @param piece the piece to render
-     * @param alpha the alpha with which to draw, changed via animation
-     */
-    public void renderGlowingPiece(Canvas canvas, Paint paint, Piece piece, int alpha) {
+			/* grout, bottom */
+			testCell = new Cell(cell, Direction.DOWN);
+			if (piece.mCells.contains(testCell)) {
 
-        float cell_width = getCellWidth();
-        float cell_height = getCellHeight();
-        RectF cell_rect = new RectF();
+				canvas.drawLine(cell_rect.left, cell_rect.bottom + 1,
+						cell_rect.right, cell_rect.bottom + 1, paint);
+			}
+		}
 
-        /* get the color of the piece */
-        Game game = Game.getInstance();
-        int color = game.getValueColor(piece.mState);
+		canvas.restore();
+	}
 
-        paint.setColor(color);
-        paint.setAlpha(alpha);
-        paint.setStyle(Paint.Style.FILL);
+	/**
+	 * Draws a glowing piece, applying the specified alpha
+	 * 
+	 * @param canvas
+	 *            drawn here
+	 * @param paint
+	 *            colors, alpha
+	 * @param piece
+	 *            the piece to render
+	 * @param alpha
+	 *            the alpha with which to draw, changed via animation
+	 */
+	public void renderGlowingPiece(Canvas canvas, Paint paint, Piece piece,
+			int alpha) {
 
-        /* draw each cell */
-        for (Iterator<Cell> iter = piece.mCells.iterator(); iter.hasNext();) {
+		float cell_width = getCellWidth();
+		float cell_height = getCellHeight();
+		RectF cell_rect = new RectF();
 
-            Cell cell = iter.next();
+		/* get the color of the piece */
+		int color = mGame.getValueColor(piece.mState);
 
-            cell_rect.top = cell.mRow * cell_height + 1;
-            cell_rect.bottom = cell_rect.top + cell_height - 2;
-            cell_rect.left = cell.mColumn * cell_width + 1;
-            cell_rect.right = cell_rect.left + cell_width - 2;
+		paint.setColor(color);
+		paint.setAlpha(alpha);
+		paint.setStyle(Paint.Style.FILL);
 
-            paint.setStyle(Paint.Style.FILL);
-            canvas.drawRect(cell_rect, paint);
+		/* draw each cell */
+		for (Iterator<Cell> iter = piece.mCells.iterator(); iter.hasNext();) {
 
-            /* grout, right */
-            Cell testCell = new Cell(cell, Direction.RIGHT);
-            if (piece.mCells.contains(testCell)) {
+			Cell cell = iter.next();
 
-                canvas.drawLine(cell_rect.right + 1, cell_rect.top, cell_rect.right + 1,
-                        cell_rect.bottom, paint);
-            }
+			cell_rect.top = cell.mRow * cell_height + 1;
+			cell_rect.bottom = cell_rect.top + cell_height - 2;
+			cell_rect.left = cell.mColumn * cell_width + 1;
+			cell_rect.right = cell_rect.left + cell_width - 2;
 
-            /* grout, bottom */
-            testCell = new Cell(cell, Direction.DOWN);
-            if (piece.mCells.contains(testCell)) {
+			paint.setStyle(Paint.Style.FILL);
+			canvas.drawRect(cell_rect, paint);
 
-                canvas.drawLine(cell_rect.left, cell_rect.bottom + 1, cell_rect.right,
-                        cell_rect.bottom + 1, paint);
-            }
-        }
-    }
+			/* grout, right */
+			Cell testCell = new Cell(cell, Direction.RIGHT);
+			if (piece.mCells.contains(testCell)) {
 
-    /**
-     * Returns the current width of the game board
-     * 
-     * @return
-     */
-    public int getBoardWidth() {
-        return mViewWidth;
-    }
+				canvas.drawLine(cell_rect.right + 1, cell_rect.top,
+						cell_rect.right + 1, cell_rect.bottom, paint);
+			}
 
-    /**
-     * Returns the current height of the game board
-     * 
-     * @return
-     */
-    public int getBoardHeight() {
-        return mViewHeight;
-    }
+			/* grout, bottom */
+			testCell = new Cell(cell, Direction.DOWN);
+			if (piece.mCells.contains(testCell)) {
+
+				canvas.drawLine(cell_rect.left, cell_rect.bottom + 1,
+						cell_rect.right, cell_rect.bottom + 1, paint);
+			}
+		}
+	}
+
+	/**
+	 * Returns the current width of the game board
+	 * 
+	 * @return
+	 */
+	public int getBoardWidth() {
+		return mViewWidth;
+	}
+
+	/**
+	 * Returns the current height of the game board
+	 * 
+	 * @return
+	 */
+	public int getBoardHeight() {
+		return mViewHeight;
+	}
 }

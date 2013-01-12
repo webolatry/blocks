@@ -27,145 +27,147 @@ import android.widget.TextView;
  * 
  * @author Tom
  */
-public class BlocksActivity extends Activity implements OnClickListener, GameObserver {
-    /** Saves game scores to a database */
-    private GameData mGameData;
+public class BlocksActivity extends Activity implements OnClickListener,
+		GameObserver {
 
-    /** Called when the activity is first created. */
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+	/** Called when the activity is first created. */
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
 
-        /*
-         * get the game instance first, if necessary; must be done before
-         * calling setContentView; if the instance doesn't exist, create one
-         * using the game-board data in the resources; currently there is only
-         * one
-         */
-        Game game = Game.getInstance();
+		setContentView(R.layout.main);
 
-        if (game == null) {
-            /* create a game instance use the game-board resource */
-            GameParser parser = new GameParser(getResources(), R.xml.game1);
-            game = Game.getInstance(parser);
-        }
+		/* register button click handlers */
+		View button = findViewById(R.id.undo);
+		button.setOnClickListener(this);
+		button = findViewById(R.id.restart);
+		button.setOnClickListener(this);
 
-        /* create database */
-        mGameData = new GameData(this);
+		/* connect various UI elements as needed */
+		BlocksView blocksView = (BlocksView) findViewById(R.id.board);
+		BoardLayout boardLayout = (BoardLayout) findViewById(R.id.boardLayout);
+		boardLayout.setView(blocksView);
 
-        setContentView(R.layout.main);
+		BlocksApplication app = (BlocksApplication) getApplication();
+		Game game = app.getGame();
 
-        /* register button click handlers */
-        View button = findViewById(R.id.undo);
-        button.setOnClickListener(this);
-        button = findViewById(R.id.restart);
-        button.setOnClickListener(this);
+		TextView Title = (TextView) findViewById(R.id.title);
+		Title.setText(game.getName());
+	}
 
-        /* connect various UI elements as needed */
-        BlocksView blocksView = (BlocksView) findViewById(R.id.board);
-        BoardLayout boardLayout = (BoardLayout) findViewById(R.id.boardLayout);
-        boardLayout.setView(blocksView);
+	/** Called when the system is about to start resuming a previous activity. */
+	@Override
+	public void onPause() {
+		super.onPause();
 
-        TextView Title = (TextView) findViewById(R.id.title);
-        Title.setText(game.getName());
-    }
+		/*
+		 * clear all game observers they will be re-added in OnResume
+		 */
+		BlocksApplication app = (BlocksApplication) getApplication();
+		Game game = app.getGame();
+		game.clearObservers();
+	}
 
-    /** Called when the system is about to start resuming a previous activity. */
-    @Override
-    public void onPause() {
-        super.onPause();
+	/** Called when the activity will start interacting with the user. */
+	@Override
+	public void onResume() {
+		super.onResume();
 
-        /*
-         * clear all game observers they will be re-added in OnResume
-         */
-        Game game = Game.getInstance();
-        game.clearObservers();
-    }
+		/* add game observers */
+		BoardLayout boardLayout = (BoardLayout) findViewById(R.id.boardLayout);
+		BlocksApplication app = (BlocksApplication) getApplication();
+		Game game = app.getGame();
+		game.addObserver(this);
+		game.addObserver(boardLayout);
+	}
 
-    /** Called when the activity will start interacting with the user. */
-    @Override
-    public void onResume() {
-        super.onResume();
+	/**
+	 * Handles button clicks for the undo and restart buttons in the activity
+	 * view
+	 */
+	public void onClick(View view) {
 
-        /* add game observers */
-        BoardLayout boardLayout = (BoardLayout) findViewById(R.id.boardLayout);
-        Game game = Game.getInstance();
-        game.addObserver(this);
-        game.addObserver(boardLayout);
-    }
+		BlocksApplication app = (BlocksApplication) getApplication();
+		Game game = app.getGame();
 
-    /**
-     * Handles button clicks for the undo and restart buttons in the activity
-     * view
-     */
-    public void onClick(View view) {
-        Game game = Game.getInstance();
+		if (view == findViewById(R.id.undo)) {
+			if (!game.isFinished())
+				game.undoMove();
+		} else if (view == findViewById(R.id.restart)) {
+			game.restartGame();
+		}
+	}
 
-        if (view == findViewById(R.id.undo)) {
-            if (!game.isFinished())
-                game.undoMove();
-        } else if (view == findViewById(R.id.restart)) {
-            game.restartGame();
-        }
-    }
+	/*********************************************************************************************
+	 * GameObserver
+	 */
 
-    /*********************************************************************************************
-     * GameObserver
-     */
+	/** Called when a game piece has been moved */
+	public void onMovePiece() {
 
-    /** Called when a game piece has been moved */
-    public void onMovePiece() {
-        /* update the move count output */
-        Game game = Game.getInstance();
-        String str = String.format("%03d", game.getMoveCount());
-        TextView current = (TextView) findViewById(R.id.current);
-        current.setText(str);
-    }
+		/* update the move count output */
+		BlocksApplication app = (BlocksApplication) getApplication();
+		Game game = app.getGame();
 
-    /** Called when a game piece has been un-moved */
-    public void onUndoMove(Piece piece) {
-        onMovePiece();
-    }
+		String str = String.format("%03d", game.getMoveCount());
+		TextView current = (TextView) findViewById(R.id.current);
+		current.setText(str);
+	}
 
-    /** Called when a game has started */
-    public void onGameStart() {
-        Game game = Game.getInstance();
+	/** Called when a game piece has been un-moved */
+	public void onUndoMove(Piece piece) {
+		onMovePiece();
+	}
 
-        AlphaTextView view = (AlphaTextView) findViewById(R.id.boardMessage);
-        view.hide();
+	/** Called when a game has started */
+	public void onGameStart() {
 
-        onMovePiece();
+		BlocksApplication app = (BlocksApplication) getApplication();
+		Game game = app.getGame();
 
-        /* look up the high score in the database */
-        int bestScore = mGameData.getBestScore(game.getID());
+		GameData data = new GameData(this);
 
-        TextView scoreView = (TextView) findViewById(R.id.best);
+		AlphaTextView view = (AlphaTextView) findViewById(R.id.boardMessage);
+		view.hide();
 
-        if (bestScore != GameData.INVALID_SCORE)
-            scoreView.setText(String.format("%03d", bestScore));
-        else
-            scoreView.setText("000");
-    }
+		onMovePiece();
 
-    /** Called when a game has finished */
-    public void onGameFinish() {
-        /* display the game finish message */
-        Game game = Game.getInstance();
-        AlphaTextView view = (AlphaTextView) findViewById(R.id.boardMessage);
-        view.setText(game.getFinishMessage());
-        view.show();
+		/* look up the high score in the database */
+		int bestScore = data.getBestScore(game.getID());
 
-        /* look up the high score in the database */
-        int bestScore = mGameData.getBestScore(game.getID());
+		TextView scoreView = (TextView) findViewById(R.id.best);
 
-        /* get current game score */
-        int currentScore = game.getMoveCount();
+		if (bestScore != GameData.INVALID_SCORE)
+			scoreView.setText(String.format("%03d", bestScore));
+		else
+			scoreView.setText("000");
+	}
 
-        if (currentScore < bestScore || bestScore == GameData.INVALID_SCORE) {
-            mGameData.setBestScore(game.getID(), currentScore);
+	/** Called when a game has finished */
+	public void onGameFinish() {
 
-            TextView scoreView = (TextView) findViewById(R.id.best);
-            scoreView.setText(String.format("%03d", currentScore));
-        }
-    }
+		BlocksApplication app = (BlocksApplication) getApplication();
+		Game game = app.getGame();
+
+		GameData data = new GameData(this);
+
+		/* display the game finish message */
+
+		AlphaTextView view = (AlphaTextView) findViewById(R.id.boardMessage);
+		view.setText(game.getFinishMessage());
+		view.show();
+
+		/* look up the high score in the database */
+		int bestScore = data.getBestScore(game.getID());
+
+		/* get current game score */
+		int currentScore = game.getMoveCount();
+
+		if (currentScore < bestScore || bestScore == GameData.INVALID_SCORE) {
+			data.setBestScore(game.getID(), currentScore);
+
+			TextView scoreView = (TextView) findViewById(R.id.best);
+			scoreView.setText(String.format("%03d", currentScore));
+		}
+	}
 }
